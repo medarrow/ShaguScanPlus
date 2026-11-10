@@ -32,6 +32,17 @@ You can build the lists as you want them, there are now limits as long as the fi
 
 ![config](./screenshots/config.jpg)
 
+## Import & Export
+
+Window settings can be shared as a text code:
+
+- **Export** in a window's configuration shows a code for that window. Press Ctrl+C to copy it.
+- **Import** in a window's configuration replaces that window's settings with the ones from a pasted code. The window keeps its name.
+- `/scan export all` shows a single code that contains all of your windows.
+- `/scan import all` imports every window in a pasted code. Windows with the same name are overwritten, all other windows are kept.
+
+Codes only contain window settings and are never run as Lua code, so importing a code from someone else is safe.
+
 # Filters
 
 <img src="./screenshots/infight.jpg" float="right" align="right">

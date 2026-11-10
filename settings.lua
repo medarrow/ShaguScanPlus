@@ -7,8 +7,42 @@ local settings = {}
 SLASH_SHAGUSCANPLUS1, SLASH_SHAGUSCANPLUS2, SLASH_SHAGUSCANPLUS3 = "/scan", "/sscan", "/shaguscanplus"
 
 SlashCmdList["SHAGUSCANPLUS"] = function(input)
+  local command = strlower(input or "")
+  if command == "export all" then
+    ShaguScanPlus.share.Export()
+    return
+  elseif command == "import all" then
+    ShaguScanPlus.share.Import()
+    return
+  end
+
   local caption = input and input ~= '' and input or "Scanner"
   settings.OpenConfig(caption)
+end
+
+settings.defaults = {
+  filter = "npc,infight,alive",
+  scale = 1, anchor = "CENTER", x = 0, y = 0,
+  width = 75, height = 12, spacing = 4, maxrow = 20,
+  locked = false,
+  shiftclick = false,
+}
+
+-- Write a config into the saved settings. An existing config table is
+-- updated in place, so open dialogs and windows keep a valid reference.
+settings.ApplyConfig = function(caption, config)
+  local existing = ShaguScanPlus_db.config[caption]
+  if existing then
+    for key in pairs(existing) do existing[key] = nil end
+    for key, value in pairs(config) do existing[key] = value end
+  else
+    ShaguScanPlus_db.config[caption] = config
+  end
+
+  local dialog = getglobal("ShaguScanPlusConfigDialog"..caption)
+  if dialog and dialog.Load then
+    dialog.Load(ShaguScanPlus_db.config[caption])
+  end
 end
 
 settings.backdrop = {
@@ -80,13 +114,9 @@ settings.OpenConfig = function(caption)
 
   -- Create defconfig if new config
   if not ShaguScanPlus_db.config[caption] then
-    ShaguScanPlus_db.config[caption] = {
-      filter = "npc,infight,alive",
-      scale = 1, anchor = "CENTER", x = 0, y = 0,
-      width = 75, height = 12, spacing = 4, maxrow = 20,
-      locked = false,
-      shiftclick = false,
-    }
+    local config = {}
+    for key, value in pairs(settings.defaults) do config[key] = value end
+    ShaguScanPlus_db.config[caption] = config
   end
 
   -- Main Dialog
@@ -118,7 +148,7 @@ settings.OpenConfig = function(caption)
 
   -- Save & Reload
   dialog.save = CreateFrame("Button", nil, dialog, "GameMenuButtonTemplate")
-  dialog.save:SetWidth(96)
+  dialog.save:SetWidth(59)
   dialog.save:SetHeight(18)
   dialog.save:SetFont(STANDARD_TEXT_FONT, 10)
   dialog.save:SetPoint("BOTTOMRIGHT", dialog, "BOTTOMRIGHT", -8, 8)
@@ -158,7 +188,7 @@ settings.OpenConfig = function(caption)
 
   -- Delete
   dialog.delete = CreateFrame("Button", nil, dialog, "GameMenuButtonTemplate")
-  dialog.delete:SetWidth(96)
+  dialog.delete:SetWidth(59)
   dialog.delete:SetHeight(18)
   dialog.delete:SetFont(STANDARD_TEXT_FONT, 10)
   dialog.delete:SetPoint("BOTTOMLEFT", dialog, "BOTTOMLEFT", 8, 8)
@@ -166,6 +196,48 @@ settings.OpenConfig = function(caption)
   dialog.delete:SetScript("OnClick", function()
     ShaguScanPlus_db.config[caption] = nil
     this:GetParent():Hide()
+  end)
+
+  -- Import
+  dialog.import = CreateFrame("Button", nil, dialog, "GameMenuButtonTemplate")
+  dialog.import:SetWidth(59)
+  dialog.import:SetHeight(18)
+  dialog.import:SetFont(STANDARD_TEXT_FONT, 10)
+  dialog.import:SetPoint("LEFT", dialog.delete, "RIGHT", 4, 0)
+  dialog.import:SetText("Import")
+  dialog.import:SetScript("OnClick", function()
+    ShaguScanPlus.share.Import(caption)
+  end)
+  dialog.import:SetScript("OnEnter", function()
+    settings.ShowTooltip(dialog.import, {
+      "Import Settings",
+      "|cffaaaaaaPaste a code to replace this window's settings.",
+      "|cffaaaaaaThe window keeps its name."
+    })
+  end)
+  dialog.import:SetScript("OnLeave", function()
+    GameTooltip:Hide()
+  end)
+
+  -- Export
+  dialog.export = CreateFrame("Button", nil, dialog, "GameMenuButtonTemplate")
+  dialog.export:SetWidth(59)
+  dialog.export:SetHeight(18)
+  dialog.export:SetFont(STANDARD_TEXT_FONT, 10)
+  dialog.export:SetPoint("RIGHT", dialog.save, "LEFT", -4, 0)
+  dialog.export:SetText("Export")
+  dialog.export:SetScript("OnClick", function()
+    ShaguScanPlus.share.Export(caption)
+  end)
+  dialog.export:SetScript("OnEnter", function()
+    settings.ShowTooltip(dialog.export, {
+      "Export Settings",
+      "|cffaaaaaaShows a code for this window that can be shared.",
+      "|cffaaaaaaUnsaved changes are not included."
+    })
+  end)
+  dialog.export:SetScript("OnLeave", function()
+    GameTooltip:Hide()
   end)
 
   dialog.close = CreateFrame("Button", nil, dialog, "UIPanelCloseButton")
@@ -397,12 +469,21 @@ settings.OpenConfig = function(caption)
     })
   end)
 
-  -- Spacer
+  dialog.y:SetScript("OnLeave", function()
+    GameTooltip:Hide()
+  end)
+
   backdrop.pos = backdrop.pos + 18
 
+  -- Spacer
+  backdrop.pos = backdrop.pos + 9
+
   -- Lock Movement
+  -- (checkboxes are shrunk from the template's 32px to fit one row each)
   dialog.locked = CreateFrame("CheckButton", nil, backdrop, "UICheckButtonTemplate")
-  dialog.locked:SetPoint("TOPLEFT", backdrop, "TOPLEFT", 10, -backdrop.pos)
+  dialog.locked:SetWidth(20)
+  dialog.locked:SetHeight(20)
+  dialog.locked:SetPoint("TOPLEFT", backdrop, "TOPLEFT", 6, -backdrop.pos)
   dialog.locked:SetChecked(config.locked and true or false)
 
   dialog.locked.text = dialog.locked:CreateFontString(nil, "OVERLAY", "GameFontWhite")
@@ -417,12 +498,17 @@ settings.OpenConfig = function(caption)
     })
   end)
 
-  -- Spacer
-  backdrop.pos = backdrop.pos + 18
+  dialog.locked:SetScript("OnLeave", function()
+    GameTooltip:Hide()
+  end)
+
+  backdrop.pos = backdrop.pos + 20
 
   -- Shift Required for Mouse Interaction
   dialog.shiftclick = CreateFrame("CheckButton", nil, backdrop, "UICheckButtonTemplate")
-  dialog.shiftclick:SetPoint("TOPLEFT", backdrop, "TOPLEFT", 10, -backdrop.pos)
+  dialog.shiftclick:SetWidth(20)
+  dialog.shiftclick:SetHeight(20)
+  dialog.shiftclick:SetPoint("TOPLEFT", backdrop, "TOPLEFT", 6, -backdrop.pos)
   dialog.shiftclick:SetChecked(config.shiftclick and true or false)
 
   dialog.shiftclick.text = dialog.shiftclick:CreateFontString(nil, "OVERLAY", "GameFontWhite")
@@ -441,7 +527,26 @@ settings.OpenConfig = function(caption)
   dialog.shiftclick:SetScript("OnLeave", function()
     GameTooltip:Hide()
   end)
-  backdrop.pos = backdrop.pos + 18
+  backdrop.pos = backdrop.pos + 20
+
+  -- Size the dialog to its content: the inner panel starts 40px below the
+  -- top and ends 28px above the bottom (button row); keep 6px padding.
+  dialog:SetHeight(40 + backdrop.pos + 6 + 28)
+
+  -- Refresh all fields from a config (used after importing)
+  dialog.Load = function(config)
+    dialog.filter:SetText(config.filter or "")
+    dialog.width:SetText(tostring(config.width))
+    dialog.height:SetText(tostring(config.height))
+    dialog.spacing:SetText(tostring(config.spacing))
+    dialog.maxrow:SetText(tostring(config.maxrow))
+    dialog.anchor:SetText(config.anchor or "")
+    dialog.scale:SetText(tostring(utils.round(config.scale, 2)))
+    dialog.x:SetText(tostring(utils.round(config.x, 2)))
+    dialog.y:SetText(tostring(utils.round(config.y, 2)))
+    dialog.locked:SetChecked(config.locked and true or false)
+    dialog.shiftclick:SetChecked(config.shiftclick and true or false)
+  end
 end
 
 ShaguScanPlus.settings = settings

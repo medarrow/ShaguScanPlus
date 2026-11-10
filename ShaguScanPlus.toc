@@ -8,6 +8,7 @@
 global.lua
 utils.lua
 settings.lua
+share.lua
 core.lua
 filter.lua
 ui.lua
