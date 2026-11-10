@@ -87,4 +87,15 @@ You can build the lists as you want them, there are now limits as long as the fi
 - **maxlevel:NUMBER**: units that are at most level NUMBER
 - **name:STRING**: units that have STRING in their name
 
+### UnitXP SP3 Filters
+
+The following filters require [UnitXP SP3](https://github.com/allfoxwy/UnitXP_SP3) to be installed. If it's not detected, these filters are disabled (ignored) and a message is printed to the chat on login.
+
+- **inlos**: units that are in your line of sight
+- **distance:NUMBER**: units that are within NUMBER yards of you
+- **imbehind**: units that you are standing behind
+- **imnotbehind**: units that you are not standing behind
+- **behindme**: units that are standing behind you
+- **notbehindme**: units that are not standing behind you
+
 New and custom filters are easy to implement, if you wish to create your own, please have a look at: [filter.lua](./filter.lua).

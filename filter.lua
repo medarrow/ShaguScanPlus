@@ -258,32 +258,48 @@ filter.name = function(unit, name)
   return string.find(unit, name) and true or false
 end
 
---my stuff
-filter.inlos = function(unit)
-  return UnitXP("inSight", "player", unit) and true or false
-end
+-- Filters below require UnitXP SP3. UnitXP("nop", "nop") is its
+-- documented presence check; it raises an error when unavailable.
+local unitxp = type(UnitXP) == "function" and pcall(UnitXP, "nop", "nop") and true or false
+ShaguScanPlus.unitxp = unitxp
 
-local distance = nil
-filter.distance = function(unit, args)
-	distance = tonumber(args)
-	return distance and UnitXP("distanceBetween", "player", unit) <= distance and true or false
-end
+if unitxp then
+  filter.inlos = function(unit)
+    return UnitXP("inSight", "player", unit) and true or false
+  end
 
-filter.imbehind = function(unit)
-  return UnitXP("behind", "player", unit) and true or false
-end
+  local distance, current = nil, nil
+  filter.distance = function(unit, args)
+    distance = tonumber(args)
+    if not distance then return false end
+    current = UnitXP("distanceBetween", "player", unit)
+    return current and current <= distance and true or false
+  end
 
-filter.imnotbehind = function(unit)
-  return not UnitXP("behind", "player", unit) and true or false
-end
+  filter.imbehind = function(unit)
+    return UnitXP("behind", "player", unit) and true or false
+  end
 
-filter.behindme = function(unit)
-  return UnitXP("behind", unit, "player") and true or false
-end
+  filter.imnotbehind = function(unit)
+    return not UnitXP("behind", "player", unit) and true or false
+  end
 
-filter.notbehindme = function(unit)
-  return not UnitXP("behind", unit, "player") and true or false
-end
+  filter.behindme = function(unit)
+    return UnitXP("behind", unit, "player") and true or false
+  end
 
+  filter.notbehindme = function(unit)
+    return not UnitXP("behind", unit, "player") and true or false
+  end
+else
+  -- Leave these filters undefined so the UI skips them, and tell the
+  -- player once the chat frame is ready.
+  local notify = CreateFrame("Frame", nil, UIParent)
+  notify:SetScript("OnUpdate", function()
+    DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Shagu|cffffffffScanPlus:|cffffaaaa Couldn't detect UnitXP SP3. " ..
+      "Filters disabled: inlos, distance, imbehind, imnotbehind, behindme, notbehindme.")
+    this:Hide()
+  end)
+end
 
 ShaguScanPlus.filter = filter
