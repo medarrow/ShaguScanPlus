@@ -14,10 +14,36 @@ SlashCmdList["SHAGUSCANPLUS"] = function(input)
   elseif command == "import all" then
     ShaguScanPlus.share.Import()
     return
+  elseif command == "list" then
+    settings.ListWindows()
+    return
   end
 
   local caption = input and input ~= '' and input or "Scanner"
   settings.OpenConfig(caption)
+end
+
+-- Print all scanner windows, sorted by name, with their filters.
+settings.ListWindows = function()
+  local prefix = "|cffffcc00Shagu|cffffffffScanPlus:|r "
+  local names = {}
+  for caption in pairs(ShaguScanPlus_db.config) do
+    table.insert(names, caption)
+  end
+
+  if table.getn(names) == 0 then
+    DEFAULT_CHAT_FRAME:AddMessage(prefix .. "There are no scanner windows. Create one with /scan <name>.")
+    return
+  end
+
+  table.sort(names, function(a, b) return strlower(a) < strlower(b) end)
+
+  DEFAULT_CHAT_FRAME:AddMessage(prefix .. "Scanner windows (" .. table.getn(names) .. "):")
+  for _, caption in ipairs(names) do
+    local filter = ShaguScanPlus_db.config[caption].filter or ""
+    DEFAULT_CHAT_FRAME:AddMessage("  |cffffcc00" .. caption .. "|r |cffaaaaaa" .. filter)
+  end
+  DEFAULT_CHAT_FRAME:AddMessage("|cffaaaaaaOpen a window's settings with /scan <name>.")
 end
 
 settings.defaults = {

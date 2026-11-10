@@ -26,6 +26,8 @@ Multiple windows can be created that each show health bars of nearby units based
 
 In case `/scan` is already blocked by another addon, you can also use `/sscan` or `/shaguscanplus`.
 
+To see all of your scanner windows and their filters, type `/scan list`.
+
 As a filter you could for example choose: `player,pvp,alliance,alive` to only show players with pvp enabled on the alliance side that are alive.
 
 You can build the lists as you want them, there are now limits as long as the filter for it exists.
