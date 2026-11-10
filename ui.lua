@@ -1,8 +1,8 @@
-if ShaguScan.disabled then return end
+if ShaguScanPlus.disabled then return end
 
-local utils = ShaguScan.utils
-local filter = ShaguScan.filter
-local settings = ShaguScan.settings
+local utils = ShaguScanPlus.utils
+local filter = ShaguScanPlus.filter
+local settings = ShaguScanPlus.settings
 
 local ui = CreateFrame("Frame", nil, UIParent)
 
@@ -21,33 +21,53 @@ ui.background = {
 ui.frames = {}
 
 ui.CreateRoot = function(parent, caption)
-  local frame = CreateFrame("Frame", "ShaguScan"..caption, parent)
+  local frame = CreateFrame("Frame", "ShaguScanPlus"..caption, parent)
   frame.id = caption
+  
+  frame:RegisterEvent("MODIFIER_STATE_CHANGED")
+
+  frame:SetScript("OnEvent", function(self)
+    if event == "MODIFIER_STATE_CHANGED" then
+      ui.UpdateMouseState(self)
+    end
+  end)
 
   frame:EnableMouse(true)
+  --[[frame:SetScript("OnUpdate", function()
+    local config = ShaguScanPlus_db.config[this.id]
+    if config and config.shiftclick then
+      this:EnableMouse(IsShiftKeyDown())
+    else
+      this:EnableMouse(true)
+    end
+  end)]]--
   frame:RegisterForDrag("LeftButton")
   frame:SetMovable(true)
 
   frame:SetScript("OnDragStart", function()
+    local config = ShaguScanPlus_db.config[this.id]
+    if config and config.locked then return end -- prevent dragging if locked
+
     this.lock = true
     this:StartMoving()
   end)
 
   frame:SetScript("OnDragStop", function()
-    -- load current window config
-    local config = ShaguScan_db.config[this.id]
+    local config = ShaguScanPlus_db.config[this.id]
+    if config and config.locked then
+      this:StopMovingOrSizing()
+      this.lock = false
+      return
+    end
 
-    -- convert to best anchor depending on position
     local new_anchor = utils.GetBestAnchor(this)
     local anchor, x, y = utils.ConvertFrameAnchor(this, new_anchor)
     this:ClearAllPoints()
     this:SetPoint(anchor, UIParent, anchor, x, y)
 
-    -- save new position
     local anchor, _, _, x, y = this:GetPoint()
     config.anchor, config.x, config.y = anchor, x, y
 
-    -- stop drag
     this:StopMovingOrSizing()
     this.lock = false
   end)
@@ -78,7 +98,7 @@ ui.CreateRoot = function(parent, caption)
   end)
 
   frame.settings.tex = frame.settings:CreateTexture(nil, 'OVERLAY')
-  frame.settings.tex:SetTexture("Interface\\AddOns\\ShaguScan\\img\\config")
+  frame.settings.tex:SetTexture("Interface\\AddOns\\ShaguScanPlus\\img\\config")
   frame.settings.tex:SetAllPoints()
   frame.settings.tex:SetAlpha(.5)
 
@@ -86,6 +106,8 @@ ui.CreateRoot = function(parent, caption)
     settings.OpenConfig(this:GetParent().id)
   end)
 
+  ui.UpdateMouseState(frame)
+  
   return frame
 end
 
@@ -161,6 +183,17 @@ ui.CreateBar = function(parent, guid)
   local frame = CreateFrame("Button", nil, parent)
   frame.guid = guid
 
+  --[[frame:SetScript("OnUpdate", function()
+    ui.BarUpdate()
+
+    local config = ShaguScanPlus_db.config[parent.id]
+    if config and config.shiftclick then
+      frame:EnableMouse(IsShiftKeyDown())
+    else
+      frame:EnableMouse(true)
+    end
+  end)]]--
+
   -- assign required events and scripts
   frame:RegisterEvent("UNIT_COMBAT")
   frame:SetScript("OnEvent", ui.BarEvent)
@@ -212,7 +245,7 @@ ui.CreateBar = function(parent, guid)
   target_left:SetWidth(8)
   target_left:SetHeight(8)
   target_left:SetPoint("LEFT", frame, "LEFT", -4, 0)
-  target_left:SetTexture("Interface\\AddOns\\ShaguScan\\img\\target-left")
+  target_left:SetTexture("Interface\\AddOns\\ShaguScanPlus\\img\\target-left")
   target_left:Hide()
   frame.target_left = target_left
 
@@ -220,7 +253,7 @@ ui.CreateBar = function(parent, guid)
   target_right:SetWidth(8)
   target_right:SetHeight(8)
   target_right:SetPoint("RIGHT", frame, "RIGHT", 4, 0)
-  target_right:SetTexture("Interface\\AddOns\\ShaguScan\\img\\target-right")
+  target_right:SetTexture("Interface\\AddOns\\ShaguScanPlus\\img\\target-right")
   target_right:Hide()
   frame.target_right = target_right
 
@@ -240,7 +273,34 @@ ui.CreateBar = function(parent, guid)
     frame.border = border
   end
 
+  -- apply current mouse state
+  local config = ShaguScanPlus_db.config[parent.id]
+  if config then
+    local allow = true
+    if config.shiftclick then
+      allow = IsShiftKeyDown() and true or false
+    end
+    frame:EnableMouse(allow)
+  end
+
   return frame
+end
+
+ui.UpdateMouseState = function(root)
+  local config = ShaguScanPlus_db.config[root.id]
+  if not config then return end
+
+  local allow = true
+
+  if config.shiftclick then
+    allow = IsShiftKeyDown() and true or false
+  end
+
+  root:EnableMouse(allow)
+
+  for guid, frame in pairs(root.frames) do
+    frame:EnableMouse(allow)
+  end
 end
 
 ui:SetAllPoints()
@@ -249,17 +309,23 @@ ui:SetScript("OnUpdate", function()
 
   -- remove old leftover frames
   for caption, root in pairs(ui.frames) do
-    if not ShaguScan_db.config[caption] then
+    if not ShaguScanPlus_db.config[caption] then
       ui.frames[caption]:Hide()
       ui.frames[caption] = nil
     end
   end
 
   -- create ui frames based on config values
-  for caption, config in pairs(ShaguScan_db.config) do
+  for caption, config in pairs(ShaguScanPlus_db.config) do
     -- create root frame if not existing
     ui.frames[caption] = ui.frames[caption] or ui:CreateRoot(caption)
     local root = ui.frames[caption]
+
+    -- ensure mouse state is correct if config changed
+    if not root.shiftconf or root.shiftconf ~= config.shiftclick then
+      root.shiftconf = config.shiftclick
+      ui.UpdateMouseState(root)
+    end
 
     -- skip if locked (due to moving)
     if root.lock then return end
@@ -291,7 +357,7 @@ ui:SetScript("OnUpdate", function()
     local title_size = 12 + config.spacing
     local width, height = config.width, config.height + title_size
     local x, y, count = 0, 0, 0
-    for guid, time in pairs(ShaguScan.core.guids) do
+    for guid, time in pairs(ShaguScanPlus.core.guids) do
       -- apply filters
       local visible = true
       for name, args in pairs(root.filter) do
@@ -341,4 +407,4 @@ ui:SetScript("OnUpdate", function()
   end
 end)
 
-ShaguScan.ui = ui
+ShaguScanPlus.ui = ui

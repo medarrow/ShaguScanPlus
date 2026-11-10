@@ -1,12 +1,12 @@
-if ShaguScan.disabled then return end
+if ShaguScanPlus.disabled then return end
 
-local utils = ShaguScan.utils
+local utils = ShaguScanPlus.utils
 
 local settings = {}
 
-SLASH_SHAGUSCAN1, SLASH_SHAGUSCAN2, SLASH_SHAGUSCAN3 = "/scan", "/sscan", "/shaguscan"
+SLASH_SHAGUSCANPLUS1, SLASH_SHAGUSCANPLUS2, SLASH_SHAGUSCANPLUS3 = "/scan", "/sscan", "/shaguscanplus"
 
-SlashCmdList["SHAGUSCAN"] = function(input)
+SlashCmdList["SHAGUSCANPLUS"] = function(input)
   local caption = input and input ~= '' and input or "Scanner"
   settings.OpenConfig(caption)
 end
@@ -72,26 +72,29 @@ end
 
 settings.OpenConfig = function(caption)
   -- Toggle Existing Dialog
-  local existing = getglobal("ShaguScanConfigDialog"..caption)
+  local existing = getglobal("ShaguScanPlusConfigDialog"..caption)
   if existing then
     if existing:IsShown() then existing:Hide() else existing:Show() end
     return
   end
 
   -- Create defconfig if new config
-  if not ShaguScan_db.config[caption] then
-    ShaguScan_db.config[caption] = {
+  if not ShaguScanPlus_db.config[caption] then
+    ShaguScanPlus_db.config[caption] = {
       filter = "npc,infight,alive",
-      scale = 1, anchor = "CENTER", x = 0, y = 0, width = 75, height = 12, spacing = 4, maxrow = 20
+      scale = 1, anchor = "CENTER", x = 0, y = 0,
+      width = 75, height = 12, spacing = 4, maxrow = 20,
+      locked = false,
+      shiftclick = false,
     }
   end
 
   -- Main Dialog
-  local dialog = CreateFrame("Frame", "ShaguScanConfigDialog"..caption, UIParent)
-  table.insert(UISpecialFrames, "ShaguScanConfigDialog"..caption)
+  local dialog = CreateFrame("Frame", "ShaguScanPlusConfigDialog"..caption, UIParent)
+  table.insert(UISpecialFrames, "ShaguScanPlusConfigDialog"..caption)
 
   -- Save Shortcuts
-  local config = ShaguScan_db.config[caption]
+  local config = ShaguScanPlus_db.config[caption]
   local caption = caption
 
   dialog:SetFrameStrata("DIALOG")
@@ -144,10 +147,12 @@ settings.OpenConfig = function(caption)
       scale = tonumber(scale) or config.scale,
       x = tonumber(x) or config.x,
       y = tonumber(y) or config.y,
+      locked = dialog.locked:GetChecked() and true or false,
+      shiftclick = dialog.shiftclick:GetChecked() and true or false,
     }
 
-    ShaguScan_db.config[caption] = nil
-    ShaguScan_db.config[new_caption] = new_config
+    ShaguScanPlus_db.config[caption] = nil
+    ShaguScanPlus_db.config[new_caption] = new_config
     this:GetParent():Hide()
   end)
 
@@ -159,7 +164,7 @@ settings.OpenConfig = function(caption)
   dialog.delete:SetPoint("BOTTOMLEFT", dialog, "BOTTOMLEFT", 8, 8)
   dialog.delete:SetText("Delete")
   dialog.delete:SetScript("OnClick", function()
-    ShaguScan_db.config[caption] = nil
+    ShaguScanPlus_db.config[caption] = nil
     this:GetParent():Hide()
   end)
 
@@ -392,10 +397,51 @@ settings.OpenConfig = function(caption)
     })
   end)
 
-  dialog.y:SetScript("OnLeave", function()
+  -- Spacer
+  backdrop.pos = backdrop.pos + 18
+
+  -- Lock Movement
+  dialog.locked = CreateFrame("CheckButton", nil, backdrop, "UICheckButtonTemplate")
+  dialog.locked:SetPoint("TOPLEFT", backdrop, "TOPLEFT", 10, -backdrop.pos)
+  dialog.locked:SetChecked(config.locked and true or false)
+
+  dialog.locked.text = dialog.locked:CreateFontString(nil, "OVERLAY", "GameFontWhite")
+  dialog.locked.text:SetFont(STANDARD_TEXT_FONT, 9)
+  dialog.locked.text:SetPoint("LEFT", dialog.locked, "RIGHT", 2, 0)
+  dialog.locked.text:SetText("Lock Movement")
+
+  dialog.locked:SetScript("OnEnter", function()
+    settings.ShowTooltip(dialog.locked, {
+    "Lock Frame Position",
+    "|cffaaaaaaPrevents the scan window from being dragged."
+    })
+  end)
+
+  -- Spacer
+  backdrop.pos = backdrop.pos + 18
+
+  -- Shift Required for Mouse Interaction
+  dialog.shiftclick = CreateFrame("CheckButton", nil, backdrop, "UICheckButtonTemplate")
+  dialog.shiftclick:SetPoint("TOPLEFT", backdrop, "TOPLEFT", 10, -backdrop.pos)
+  dialog.shiftclick:SetChecked(config.shiftclick and true or false)
+
+  dialog.shiftclick.text = dialog.shiftclick:CreateFontString(nil, "OVERLAY", "GameFontWhite")
+  dialog.shiftclick.text:SetFont(STANDARD_TEXT_FONT, 9)
+  dialog.shiftclick.text:SetPoint("LEFT", dialog.shiftclick, "RIGHT", 2, 0)
+  dialog.shiftclick.text:SetText("Require Shift for Mouse")
+
+  dialog.shiftclick:SetScript("OnEnter", function()
+    settings.ShowTooltip(dialog.shiftclick, {
+      "Require Shift Key",
+      "|cffaaaaaaWhen enabled, the scan window will",
+      "|cffaaaaaaignore all mouse input unless Shift is held."
+    })
+  end)
+
+  dialog.shiftclick:SetScript("OnLeave", function()
     GameTooltip:Hide()
   end)
   backdrop.pos = backdrop.pos + 18
 end
 
-ShaguScan.settings = settings
+ShaguScanPlus.settings = settings

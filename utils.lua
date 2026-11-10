@@ -1,4 +1,4 @@
-if ShaguScan.disabled then return end
+if ShaguScanPlus.disabled then return end
 
 local utils = {}
 
@@ -173,4 +173,4 @@ utils.GetLevelString = function(unitstr)
   return level
 end
 
-ShaguScan.utils = utils
+ShaguScanPlus.utils = utils

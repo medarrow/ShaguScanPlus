@@ -1,4 +1,4 @@
-if ShaguScan.disabled then return end
+if ShaguScanPlus.disabled then return end
 
 local core = CreateFrame("Frame", nil, WorldFrame)
 
@@ -40,4 +40,4 @@ core:SetScript("OnEvent", function()
   end
 end)
 
-ShaguScan.core = core
+ShaguScanPlus.core = core

@@ -1,4 +1,4 @@
-if ShaguScan.disabled then return end
+if ShaguScanPlus.disabled then return end
 
 local filter = { }
 
@@ -258,4 +258,32 @@ filter.name = function(unit, name)
   return string.find(unit, name) and true or false
 end
 
-ShaguScan.filter = filter
+--my stuff
+filter.inlos = function(unit)
+  return UnitXP("inSight", "player", unit) and true or false
+end
+
+local distance = nil
+filter.distance = function(unit, args)
+	distance = tonumber(args)
+	return distance and UnitXP("distanceBetween", "player", unit) <= distance and true or false
+end
+
+filter.imbehind = function(unit)
+  return UnitXP("behind", "player", unit) and true or false
+end
+
+filter.imnotbehind = function(unit)
+  return not UnitXP("behind", "player", unit) and true or false
+end
+
+filter.behindme = function(unit)
+  return UnitXP("behind", unit, "player") and true or false
+end
+
+filter.notbehindme = function(unit)
+  return not UnitXP("behind", unit, "player") and true or false
+end
+
+
+ShaguScanPlus.filter = filter
