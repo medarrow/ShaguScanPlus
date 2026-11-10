@@ -1,4 +1,4 @@
-if ShaguScanPlus.disabled then return end
+if ShaguScan.disabled then return end
 
 local utils = {}
 
@@ -257,4 +257,4 @@ utils.ParseFilterText = function(text)
   return filters, colors, invalid
 end
 
-ShaguScanPlus.utils = utils
+ShaguScan.utils = utils

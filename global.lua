@@ -1,5 +1,5 @@
-ShaguScanPlus = {}
-ShaguScanPlus_db = {
+ShaguScan = {}
+ShaguScan_db = {
   config = {
     ["Infight NPCs"] = {
       filter = "npc,infight",
@@ -16,9 +16,9 @@ ShaguScanPlus_db = {
 if not GetPlayerBuffID or not CombatLogAdd or not SpellInfo then
   local notify = CreateFrame("Frame", nil, UIParent)
   notify:SetScript("OnUpdate", function()
-    DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Shagu|cffffffffScanPlus:|cffffaaaa Couldn't detect SuperWoW.")
+    DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Shagu|cffffffffScan:|cffffaaaa Couldn't detect SuperWoW.")
     this:Hide()
   end)
 
-  ShaguScanPlus.disabled = true
+  ShaguScan.disabled = true
 end

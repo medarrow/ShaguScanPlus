@@ -1,9 +1,9 @@
 ## Interface: 11200
-## Title: |cffffcc00Shagu|cffffffffScanPlus
+## Title: |cffffcc00Shagu|cffffffffScan-Plus
 ## Author: Shagu
 ## Notes: Uses SuperWoW GUIDs to show nearby units
 ## Version: 1.1
-## SavedVariablesPerCharacter: ShaguScanPlus_db
+## SavedVariablesPerCharacter: ShaguScan_db
 
 global.lua
 utils.lua

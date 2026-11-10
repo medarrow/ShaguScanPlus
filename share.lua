@@ -1,7 +1,7 @@
-if ShaguScanPlus.disabled then return end
+if ShaguScan.disabled then return end
 
-local utils = ShaguScanPlus.utils
-local settings = ShaguScanPlus.settings
+local utils = ShaguScan.utils
+local settings = ShaguScan.settings
 
 local share = {}
 
@@ -502,14 +502,14 @@ end
 share.Export = function(caption)
   local windows, title
   if caption then
-    if not ShaguScanPlus_db.config[caption] then
+    if not ShaguScan_db.config[caption] then
       print("There is no window called \"" .. caption .. "\".")
       return
     end
-    windows = { [caption] = ShaguScanPlus_db.config[caption] }
+    windows = { [caption] = ShaguScan_db.config[caption] }
     title = "Export: " .. caption
   else
-    windows, title = ShaguScanPlus_db.config, "Export All Windows"
+    windows, title = ShaguScan_db.config, "Export All Windows"
     if not next(windows) then
       print("There are no windows to export.")
       return
@@ -551,4 +551,4 @@ share.Import = function(caption)
   end)
 end
 
-ShaguScanPlus.share = share
+ShaguScan.share = share

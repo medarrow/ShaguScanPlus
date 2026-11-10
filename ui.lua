@@ -1,8 +1,8 @@
-if ShaguScanPlus.disabled then return end
+if ShaguScan.disabled then return end
 
-local utils = ShaguScanPlus.utils
-local filter = ShaguScanPlus.filter
-local settings = ShaguScanPlus.settings
+local utils = ShaguScan.utils
+local filter = ShaguScan.filter
+local settings = ShaguScan.settings
 
 local ui = CreateFrame("Frame", nil, UIParent)
 
@@ -21,7 +21,7 @@ ui.background = {
 ui.frames = {}
 
 ui.CreateRoot = function(parent, caption)
-  local frame = CreateFrame("Frame", "ShaguScanPlus"..caption, parent)
+  local frame = CreateFrame("Frame", "ShaguScan"..caption, parent)
   frame.id = caption
   
   frame:RegisterEvent("MODIFIER_STATE_CHANGED")
@@ -34,7 +34,7 @@ ui.CreateRoot = function(parent, caption)
 
   frame:EnableMouse(true)
   --[[frame:SetScript("OnUpdate", function()
-    local config = ShaguScanPlus_db.config[this.id]
+    local config = ShaguScan_db.config[this.id]
     if config and config.shiftclick then
       this:EnableMouse(IsShiftKeyDown())
     else
@@ -45,7 +45,7 @@ ui.CreateRoot = function(parent, caption)
   frame:SetMovable(true)
 
   frame:SetScript("OnDragStart", function()
-    local config = ShaguScanPlus_db.config[this.id]
+    local config = ShaguScan_db.config[this.id]
     if config and config.locked then return end -- prevent dragging if locked
 
     this.lock = true
@@ -53,7 +53,7 @@ ui.CreateRoot = function(parent, caption)
   end)
 
   frame:SetScript("OnDragStop", function()
-    local config = ShaguScanPlus_db.config[this.id]
+    local config = ShaguScan_db.config[this.id]
     if config and config.locked then
       this:StopMovingOrSizing()
       this.lock = false
@@ -98,7 +98,7 @@ ui.CreateRoot = function(parent, caption)
   end)
 
   frame.settings.tex = frame.settings:CreateTexture(nil, 'OVERLAY')
-  frame.settings.tex:SetTexture("Interface\\AddOns\\ShaguScanPlus\\img\\config")
+  frame.settings.tex:SetTexture("Interface\\AddOns\\ShaguScan\\img\\config")
   frame.settings.tex:SetAllPoints()
   frame.settings.tex:SetAlpha(.5)
 
@@ -190,7 +190,7 @@ ui.CreateBar = function(parent, guid)
   --[[frame:SetScript("OnUpdate", function()
     ui.BarUpdate()
 
-    local config = ShaguScanPlus_db.config[parent.id]
+    local config = ShaguScan_db.config[parent.id]
     if config and config.shiftclick then
       frame:EnableMouse(IsShiftKeyDown())
     else
@@ -249,7 +249,7 @@ ui.CreateBar = function(parent, guid)
   target_left:SetWidth(8)
   target_left:SetHeight(8)
   target_left:SetPoint("LEFT", frame, "LEFT", -4, 0)
-  target_left:SetTexture("Interface\\AddOns\\ShaguScanPlus\\img\\target-left")
+  target_left:SetTexture("Interface\\AddOns\\ShaguScan\\img\\target-left")
   target_left:Hide()
   frame.target_left = target_left
 
@@ -257,7 +257,7 @@ ui.CreateBar = function(parent, guid)
   target_right:SetWidth(8)
   target_right:SetHeight(8)
   target_right:SetPoint("RIGHT", frame, "RIGHT", 4, 0)
-  target_right:SetTexture("Interface\\AddOns\\ShaguScanPlus\\img\\target-right")
+  target_right:SetTexture("Interface\\AddOns\\ShaguScan\\img\\target-right")
   target_right:Hide()
   frame.target_right = target_right
 
@@ -278,7 +278,7 @@ ui.CreateBar = function(parent, guid)
   end
 
   -- apply current mouse state
-  local config = ShaguScanPlus_db.config[parent.id]
+  local config = ShaguScan_db.config[parent.id]
   if config then
     local allow = true
     if config.shiftclick then
@@ -291,7 +291,7 @@ ui.CreateBar = function(parent, guid)
 end
 
 ui.UpdateMouseState = function(root)
-  local config = ShaguScanPlus_db.config[root.id]
+  local config = ShaguScan_db.config[root.id]
   if not config then return end
 
   local allow = true
@@ -313,14 +313,14 @@ ui:SetScript("OnUpdate", function()
 
   -- remove old leftover frames
   for caption, root in pairs(ui.frames) do
-    if not ShaguScanPlus_db.config[caption] then
+    if not ShaguScan_db.config[caption] then
       ui.frames[caption]:Hide()
       ui.frames[caption] = nil
     end
   end
 
   -- create ui frames based on config values
-  for caption, config in pairs(ShaguScanPlus_db.config) do
+  for caption, config in pairs(ShaguScan_db.config) do
     -- create root frame if not existing
     ui.frames[caption] = ui.frames[caption] or ui:CreateRoot(caption)
     local root = ui.frames[caption]
@@ -361,7 +361,7 @@ ui:SetScript("OnUpdate", function()
     local title_size = 12 + config.spacing
     local width, height = config.width, config.height + title_size
     local x, y, count = 0, 0, 0
-    for guid, time in pairs(ShaguScanPlus.core.guids) do
+    for guid, time in pairs(ShaguScan.core.guids) do
       -- apply filters
       local visible = true
       for name, args in pairs(root.filter) do
@@ -427,4 +427,4 @@ ui:SetScript("OnUpdate", function()
   end
 end)
 
-ShaguScanPlus.ui = ui
+ShaguScan.ui = ui

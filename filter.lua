@@ -1,4 +1,4 @@
-if ShaguScanPlus.disabled then return end
+if ShaguScan.disabled then return end
 
 local filter = { }
 
@@ -290,7 +290,7 @@ end
 -- Filters below require UnitXP SP3. UnitXP("nop", "nop") is its
 -- documented presence check; it raises an error when unavailable.
 local unitxp = type(UnitXP) == "function" and pcall(UnitXP, "nop", "nop") and true or false
-ShaguScanPlus.unitxp = unitxp
+ShaguScan.unitxp = unitxp
 
 if unitxp then
   filter.inlos = function(unit)
@@ -331,4 +331,4 @@ else
   end)
 end
 
-ShaguScanPlus.filter = filter
+ShaguScan.filter = filter

@@ -1,18 +1,18 @@
-if ShaguScanPlus.disabled then return end
+if ShaguScan.disabled then return end
 
-local utils = ShaguScanPlus.utils
+local utils = ShaguScan.utils
 
 local settings = {}
 
-SLASH_SHAGUSCANPLUS1, SLASH_SHAGUSCANPLUS2, SLASH_SHAGUSCANPLUS3 = "/scan", "/sscan", "/shaguscanplus"
+SLASH_SHAGUSCAN1, SLASH_SHAGUSCAN2, SLASH_SHAGUSCAN3, SLASH_SHAGUSCAN4 = "/scan", "/sscan", "/shaguscan", "/shaguscanplus"
 
-SlashCmdList["SHAGUSCANPLUS"] = function(input)
+SlashCmdList["SHAGUSCAN"] = function(input)
   local command = strlower(input or "")
   if command == "export all" then
-    ShaguScanPlus.share.Export()
+    ShaguScan.share.Export()
     return
   elseif command == "import all" then
-    ShaguScanPlus.share.Import()
+    ShaguScan.share.Import()
     return
   elseif command == "list" then
     settings.ListWindows()
@@ -27,7 +27,7 @@ end
 settings.ListWindows = function()
   local prefix = "|cffffcc00Shagu|cffffffffScanPlus:|r "
   local names = {}
-  for caption in pairs(ShaguScanPlus_db.config) do
+  for caption in pairs(ShaguScan_db.config) do
     table.insert(names, caption)
   end
 
@@ -40,7 +40,7 @@ settings.ListWindows = function()
 
   DEFAULT_CHAT_FRAME:AddMessage(prefix .. "Scanner windows (" .. table.getn(names) .. "):")
   for _, caption in ipairs(names) do
-    local filter = ShaguScanPlus_db.config[caption].filter or ""
+    local filter = ShaguScan_db.config[caption].filter or ""
     DEFAULT_CHAT_FRAME:AddMessage("  |cffffcc00" .. caption .. "|r |cffaaaaaa" .. filter)
   end
   DEFAULT_CHAT_FRAME:AddMessage("|cffaaaaaaOpen a window's settings with /scan <name>.")
@@ -57,17 +57,17 @@ settings.defaults = {
 -- Write a config into the saved settings. An existing config table is
 -- updated in place, so open dialogs and windows keep a valid reference.
 settings.ApplyConfig = function(caption, config)
-  local existing = ShaguScanPlus_db.config[caption]
+  local existing = ShaguScan_db.config[caption]
   if existing then
     for key in pairs(existing) do existing[key] = nil end
     for key, value in pairs(config) do existing[key] = value end
   else
-    ShaguScanPlus_db.config[caption] = config
+    ShaguScan_db.config[caption] = config
   end
 
-  local dialog = getglobal("ShaguScanPlusConfigDialog"..caption)
+  local dialog = getglobal("ShaguScanConfigDialog"..caption)
   if dialog and dialog.Load then
-    dialog.Load(ShaguScanPlus_db.config[caption])
+    dialog.Load(ShaguScan_db.config[caption])
   end
 end
 
@@ -132,25 +132,25 @@ end
 
 settings.OpenConfig = function(caption)
   -- Toggle Existing Dialog
-  local existing = getglobal("ShaguScanPlusConfigDialog"..caption)
+  local existing = getglobal("ShaguScanConfigDialog"..caption)
   if existing then
     if existing:IsShown() then existing:Hide() else existing:Show() end
     return
   end
 
   -- Create defconfig if new config
-  if not ShaguScanPlus_db.config[caption] then
+  if not ShaguScan_db.config[caption] then
     local config = {}
     for key, value in pairs(settings.defaults) do config[key] = value end
-    ShaguScanPlus_db.config[caption] = config
+    ShaguScan_db.config[caption] = config
   end
 
   -- Main Dialog
-  local dialog = CreateFrame("Frame", "ShaguScanPlusConfigDialog"..caption, UIParent)
-  table.insert(UISpecialFrames, "ShaguScanPlusConfigDialog"..caption)
+  local dialog = CreateFrame("Frame", "ShaguScanConfigDialog"..caption, UIParent)
+  table.insert(UISpecialFrames, "ShaguScanConfigDialog"..caption)
 
   -- Save Shortcuts
-  local config = ShaguScanPlus_db.config[caption]
+  local config = ShaguScan_db.config[caption]
   local caption = caption
 
   dialog:SetFrameStrata("DIALOG")
@@ -207,8 +207,8 @@ settings.OpenConfig = function(caption)
       shiftclick = dialog.shiftclick:GetChecked() and true or false,
     }
 
-    ShaguScanPlus_db.config[caption] = nil
-    ShaguScanPlus_db.config[new_caption] = new_config
+    ShaguScan_db.config[caption] = nil
+    ShaguScan_db.config[new_caption] = new_config
     this:GetParent():Hide()
   end)
 
@@ -220,7 +220,7 @@ settings.OpenConfig = function(caption)
   dialog.delete:SetPoint("BOTTOMLEFT", dialog, "BOTTOMLEFT", 8, 8)
   dialog.delete:SetText("Delete")
   dialog.delete:SetScript("OnClick", function()
-    ShaguScanPlus_db.config[caption] = nil
+    ShaguScan_db.config[caption] = nil
     this:GetParent():Hide()
   end)
 
@@ -232,7 +232,7 @@ settings.OpenConfig = function(caption)
   dialog.import:SetPoint("LEFT", dialog.delete, "RIGHT", 4, 0)
   dialog.import:SetText("Import")
   dialog.import:SetScript("OnClick", function()
-    ShaguScanPlus.share.Import(caption)
+    ShaguScan.share.Import(caption)
   end)
   dialog.import:SetScript("OnEnter", function()
     settings.ShowTooltip(dialog.import, {
@@ -253,7 +253,7 @@ settings.OpenConfig = function(caption)
   dialog.export:SetPoint("RIGHT", dialog.save, "LEFT", -4, 0)
   dialog.export:SetText("Export")
   dialog.export:SetScript("OnClick", function()
-    ShaguScanPlus.share.Export(caption)
+    ShaguScan.share.Export(caption)
   end)
   dialog.export:SetScript("OnEnter", function()
     settings.ShowTooltip(dialog.export, {
@@ -581,4 +581,4 @@ settings.OpenConfig = function(caption)
   end
 end
 
-ShaguScanPlus.settings = settings
+ShaguScan.settings = settings

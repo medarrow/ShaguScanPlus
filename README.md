@@ -13,18 +13,20 @@ The addon can be used to see all marked raid targets, detect rare mobs, find nea
 >
 > It won't work without it. Really.
 
+ShaguScanPlus is a drop-in replacement for [ShaguScan](https://github.com/shagu/ShaguScan). It installs into the same `ShaguScan` folder and uses the same saved settings, so your existing windows carry over as they are.
+
 ## Installation (Vanilla, 1.12)
 1. Download **[Latest Version](https://github.com/medarrow/ShaguScanPlus/archive/master.zip)**
 2. Unpack the Zip file
-3. Rename the folder "ShaguScanPlus-master" to "ShaguScanPlus"
-4. Copy "ShaguScanPlus" into Wow-Directory\Interface\AddOns
+3. Rename the folder "ShaguScanPlus-master" to "ShaguScan"
+4. Copy "ShaguScan" into Wow-Directory\Interface\AddOns, replacing the old ShaguScan folder if you have one
 5. Restart Wow
 
 # Usage
 
 Multiple windows can be created that each show health bars of nearby units based on custom filters. A new window with the title "Alliance PvP" can be created by typing `/scan Alliance PvP`. A configuration will appear, in which the created window can be customized. You can chose as many filters as you wish (comma separated).
 
-In case `/scan` is already blocked by another addon, you can also use `/sscan` or `/shaguscanplus`.
+In case `/scan` is already blocked by another addon, you can also use `/sscan`, `/shaguscan` or `/shaguscanplus`.
 
 To see all of your scanner windows and their filters, type `/scan list`.
 
