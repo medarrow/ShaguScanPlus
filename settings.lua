@@ -319,6 +319,12 @@ settings.OpenConfig = function(caption)
       { "|cffffffffpve", "PvE Units" },
       { "|cffffffffpvp", "PvP Enabled Units" },
       { "|cfffffffficon", "Units With Raid Icons" },
+      { "|cffffffffhurt", "Units Below Full Health" },
+      { "|cfffffffftagged", "Units Tagged By You" },
+      " ",
+      "|cffffffffcolor:red(hurt,infight)",
+      "|cffaaaaaaColors bars of units matching the filters in brackets.",
+      "|cffaaaaaaUse a color name or a hex code like #ff8000.",
       " ",
       "|cffffffffA complete list of filters can be found in the README."
     })

@@ -258,6 +258,35 @@ filter.name = function(unit, name)
   return string.find(unit, name) and true or false
 end
 
+local health, healthmax = nil, nil
+filter.hurt = function(unit)
+  health, healthmax = UnitHealth(unit), UnitHealthMax(unit)
+  return healthmax and healthmax > 0 and health < healthmax and true or false
+end
+
+filter.unhurt = function(unit)
+  health, healthmax = UnitHealth(unit), UnitHealthMax(unit)
+  return healthmax and healthmax > 0 and health >= healthmax and true or false
+end
+
+-- UnitIsTappedByPlayer is true when you (or your group) tagged the unit,
+-- UnitIsTapped is true when anyone tagged it.
+filter.tagged = function(unit)
+  return UnitIsTappedByPlayer(unit) and true or false
+end
+
+filter.notagged = function(unit)
+  return not UnitIsTappedByPlayer(unit) and true or false
+end
+
+filter.othertagged = function(unit)
+  return UnitIsTapped(unit) and not UnitIsTappedByPlayer(unit) and true or false
+end
+
+filter.noothertagged = function(unit)
+  return not (UnitIsTapped(unit) and not UnitIsTappedByPlayer(unit)) and true or false
+end
+
 -- Filters below require UnitXP SP3. UnitXP("nop", "nop") is its
 -- documented presence check; it raises an error when unavailable.
 local unitxp = type(UnitXP) == "function" and pcall(UnitXP, "nop", "nop") and true or false

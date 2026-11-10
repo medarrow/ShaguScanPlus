@@ -133,9 +133,13 @@ ui.BarUpdate = function()
   this.bar:SetMinMaxValues(0, UnitHealthMax(this.guid))
   this.bar:SetValue(UnitHealth(this.guid))
 
-  -- update health bar color
-  local hex, r, g, b, a = utils.GetUnitColor(this.guid)
-  this.bar:SetStatusBarColor(r, g, b, a)
+  -- update health bar color (a matching color: modifier wins)
+  if this.color then
+    this.bar:SetStatusBarColor(this.color[1], this.color[2], this.color[3], 1)
+  else
+    local hex, r, g, b, a = utils.GetUnitColor(this.guid)
+    this.bar:SetStatusBarColor(r, g, b, a)
+  end
 
   -- update caption text
   local level = utils.GetLevelString(this.guid)
@@ -340,13 +344,13 @@ ui:SetScript("OnUpdate", function()
 
     -- update filter if required
     if not root.filter_conf or root.filter_conf ~= config.filter then
-      root.filter = {}
+      -- prepare all filter texts and color modifiers
+      local invalid
+      root.filter, root.colors, invalid = utils.ParseFilterText(config.filter)
 
-      -- prepare all filter texts
-      local filter_texts = { utils.strsplit(',', config.filter) }
-      for id, filter_text in pairs(filter_texts) do
-        local name, args = utils.strsplit(':', filter_text)
-        root.filter[name] = args or true
+      for _, text in ipairs(invalid) do
+        DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Shagu|cffffffffScanPlus:|cffffaaaa Unknown color in \"" ..
+          caption .. "\": " .. text)
       end
 
       -- mark current state of data
@@ -379,6 +383,22 @@ ui:SetScript("OnUpdate", function()
         height = math.max(y + config.height + config.spacing, height)
 
         root.frames[guid] = root.frames[guid] or root:CreateBar(guid)
+
+        -- pick the first color modifier whose filters all match
+        local color = nil
+        for _, rule in ipairs(root.colors) do
+          local match = true
+          for _, sub in ipairs(rule.filters) do
+            if filter[sub[1]] then
+              match = match and filter[sub[1]](guid, sub[2])
+            end
+          end
+          if match then
+            color = rule
+            break
+          end
+        end
+        root.frames[guid].color = color
 
         -- update position if required
         if not root.frames[guid].pos or root.frames[guid].pos ~= x..-y then

@@ -99,6 +99,24 @@ Codes only contain window settings and are never run as Lua code, so importing a
 - **minlevel:NUMBER**: units that are at least level NUMBER
 - **maxlevel:NUMBER**: units that are at most level NUMBER
 - **name:STRING**: units that have STRING in their name
+- **hurt**: units that are below full health
+- **unhurt**: units that are at full health
+- **tagged**: units that are tagged by you (or your group)
+- **notagged**: units that are not tagged by you (or your group)
+- **othertagged**: units that are tagged by someone else
+- **noothertagged**: units that are not tagged by someone else
+
+### Color Modifier
+
+`color:COLOR(FILTERS)` doesn't hide any units. Instead, it colors the health bars of all shown units that match every filter inside the brackets. For example:
+
+- `npc,alive,color:red(hurt,infight)` shows all living NPCs and colors those that are hurt and in combat red.
+- `npc,color:#00ff00(tagged),color:grey(othertagged)` colors NPCs you tagged green and NPCs tagged by others grey.
+- `player,color:purple` colors every bar in the window purple.
+
+COLOR can be a hex code like `#ff8000` (the `#` is optional) or one of these names: white, black, grey, gray, red, green, blue, yellow, orange, purple, pink, cyan, magenta, brown, gold.
+
+If a unit matches more than one color modifier, the first one wins. Units that match none keep their normal color. A color that can't be read is reported in the chat and ignored.
 
 ### UnitXP SP3 Filters
 

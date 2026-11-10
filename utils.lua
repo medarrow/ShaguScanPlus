@@ -173,4 +173,88 @@ utils.GetLevelString = function(unitstr)
   return level
 end
 
+utils.trim = function(text)
+  local _, _, trimmed = string.find(text or "", "^%s*(.-)%s*$")
+  return trimmed
+end
+
+-- Split a filter string on commas, except inside parentheses, so that
+-- "npc,color:red(hurt,infight)" gives "npc" and "color:red(hurt,infight)".
+utils.SplitFilters = function(text)
+  local parts, depth, start = {}, 0, 1
+  text = text or ""
+
+  local function add(part)
+    part = utils.trim(part)
+    if part ~= "" then table.insert(parts, part) end
+  end
+
+  for i = 1, strlen(text) do
+    local char = strsub(text, i, i)
+    if char == "(" then
+      depth = depth + 1
+    elseif char == ")" and depth > 0 then
+      depth = depth - 1
+    elseif char == "," and depth == 0 then
+      add(strsub(text, start, i - 1))
+      start = i + 1
+    end
+  end
+  add(strsub(text, start))
+
+  return parts
+end
+
+utils.colors = {
+  white = "ffffff", black = "000000", grey = "808080", gray = "808080",
+  red = "ff0000", green = "00ff00", blue = "0066ff", yellow = "ffff00",
+  orange = "ff8000", purple = "a335ee", pink = "ff69b4", cyan = "00ffff",
+  magenta = "ff00ff", brown = "8b4513", gold = "ffd100",
+}
+
+-- Accepts a color name from utils.colors or a hex code ("#ff8000" or "ff8000").
+-- Returns r, g, b (0-1) or nil if the color is unknown.
+utils.ParseColor = function(text)
+  text = strlower(utils.trim(text))
+  local hex = utils.colors[text] or text
+  local _, _, r, g, b = string.find(hex, "^#?(%x%x)(%x%x)(%x%x)$")
+  if not r then return nil end
+  return tonumber(r, 16) / 255, tonumber(g, 16) / 255, tonumber(b, 16) / 255
+end
+
+-- Parse a window's filter string.
+-- Returns:
+--   filters: { [name] = args or true }, units must match all of them
+--   colors:  list of { r, g, b, filters = { { name, args }, ... } };
+--            the first rule whose filters all match colors the bar
+--   invalid: list of color modifiers that couldn't be read
+utils.ParseFilterText = function(text)
+  local filters, colors, invalid = {}, {}, {}
+
+  for _, part in ipairs(utils.SplitFilters(text)) do
+    if strlower(strsub(part, 1, 6)) == "color:" then
+      local rest = strsub(part, 7)
+      local _, _, color, inner = string.find(rest, "^([^%(]*)%((.*)%)$")
+      if not color then color, inner = rest, "" end
+
+      local r, g, b = utils.ParseColor(color)
+      if r then
+        local rule = { r, g, b, filters = {} }
+        for _, sub in ipairs(utils.SplitFilters(inner)) do
+          local name, args = utils.strsplit(':', sub)
+          if name then table.insert(rule.filters, { name, args or true }) end
+        end
+        table.insert(colors, rule)
+      else
+        table.insert(invalid, part)
+      end
+    else
+      local name, args = utils.strsplit(':', part)
+      if name then filters[name] = args or true end
+    end
+  end
+
+  return filters, colors, invalid
+end
+
 ShaguScanPlus.utils = utils
