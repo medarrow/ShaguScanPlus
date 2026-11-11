@@ -357,8 +357,18 @@ ui:SetScript("OnUpdate", function()
       root.filter_conf = config.filter
     end
 
+    -- show or hide the label (title and settings button)
+    if config.hidelabel then
+      root.caption:Hide()
+      root.settings:Hide()
+    else
+      root.caption:Show()
+      root.settings:Show()
+    end
+
     -- run through all guids and fill with bars
-    local title_size = 12 + config.spacing
+    -- (without a label, the bars start at the top of the window)
+    local title_size = config.hidelabel and 0 or 12 + config.spacing
     local width, height = config.width, config.height + title_size
     local x, y, count = 0, 0, 0
     for guid, time in pairs(ShaguScan.core.guids) do

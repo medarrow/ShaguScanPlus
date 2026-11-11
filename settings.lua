@@ -52,6 +52,7 @@ settings.defaults = {
   width = 75, height = 12, spacing = 4, maxrow = 20,
   locked = false,
   shiftclick = false,
+  hidelabel = false,
 }
 
 -- Write a config into the saved settings. An existing config table is
@@ -205,6 +206,7 @@ settings.OpenConfig = function(caption)
       y = tonumber(y) or config.y,
       locked = dialog.locked:GetChecked() and true or false,
       shiftclick = dialog.shiftclick:GetChecked() and true or false,
+      hidelabel = dialog.hidelabel:GetChecked() and true or false,
     }
 
     ShaguScan_db.config[caption] = nil
@@ -561,6 +563,32 @@ settings.OpenConfig = function(caption)
   end)
   backdrop.pos = backdrop.pos + 20
 
+  -- Hide Label
+  dialog.hidelabel = CreateFrame("CheckButton", nil, backdrop, "UICheckButtonTemplate")
+  dialog.hidelabel:SetWidth(20)
+  dialog.hidelabel:SetHeight(20)
+  dialog.hidelabel:SetPoint("TOPLEFT", backdrop, "TOPLEFT", 6, -backdrop.pos)
+  dialog.hidelabel:SetChecked(config.hidelabel and true or false)
+
+  dialog.hidelabel.text = dialog.hidelabel:CreateFontString(nil, "OVERLAY", "GameFontWhite")
+  dialog.hidelabel.text:SetFont(STANDARD_TEXT_FONT, 9)
+  dialog.hidelabel.text:SetPoint("LEFT", dialog.hidelabel, "RIGHT", 2, 0)
+  dialog.hidelabel.text:SetText("Hide Label")
+
+  dialog.hidelabel:SetScript("OnEnter", function()
+    settings.ShowTooltip(dialog.hidelabel, {
+      "Hide Label",
+      "|cffaaaaaaHides the window's title and settings button,",
+      "|cffaaaaaaso the health bars start at the top.",
+      "|cffaaaaaaUse /scan <name> to open the settings again."
+    })
+  end)
+
+  dialog.hidelabel:SetScript("OnLeave", function()
+    GameTooltip:Hide()
+  end)
+  backdrop.pos = backdrop.pos + 20
+
   -- Size the dialog to its content: the inner panel starts 40px below the
   -- top and ends 28px above the bottom (button row); keep 6px padding.
   dialog:SetHeight(40 + backdrop.pos + 6 + 28)
@@ -578,6 +606,7 @@ settings.OpenConfig = function(caption)
     dialog.y:SetText(tostring(utils.round(config.y, 2)))
     dialog.locked:SetChecked(config.locked and true or false)
     dialog.shiftclick:SetChecked(config.shiftclick and true or false)
+    dialog.hidelabel:SetChecked(config.hidelabel and true or false)
   end
 end
 

@@ -30,6 +30,12 @@ In case `/scan` is already blocked by another addon, you can also use `/sscan`, 
 
 To see all of your scanner windows and their filters, type `/scan list`.
 
+Each window's configuration also has these options:
+
+- **Lock Movement**: the window can't be dragged.
+- **Require Shift for Mouse**: the window ignores the mouse unless Shift is held.
+- **Hide Label**: hides the window's title and settings button, so the health bars start at the top. Use `/scan <name>` to open the configuration again.
+
 As a filter you could for example choose: `player,pvp,alliance,alive` to only show players with pvp enabled on the alliance side that are alive.
 
 You can build the lists as you want them, there are now limits as long as the filter for it exists.

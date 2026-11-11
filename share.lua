@@ -324,7 +324,7 @@ local schema = {
   filter = "string", anchor = "string",
   scale = "number", x = "number", y = "number",
   width = "number", height = "number", spacing = "number", maxrow = "number",
-  locked = "boolean", shiftclick = "boolean",
+  locked = "boolean", shiftclick = "boolean", hidelabel = "boolean",
 }
 
 share.Sanitize = function(config)
