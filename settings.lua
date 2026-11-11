@@ -7,7 +7,8 @@ local settings = {}
 SLASH_SHAGUSCAN1, SLASH_SHAGUSCAN2, SLASH_SHAGUSCAN3, SLASH_SHAGUSCAN4 = "/scan", "/sscan", "/shaguscan", "/shaguscanplus"
 
 SlashCmdList["SHAGUSCAN"] = function(input)
-  local command = strlower(input or "")
+  input = utils.trim(input)
+  local command = strlower(input)
   if command == "export all" then
     ShaguScan.share.Export()
     return
@@ -132,23 +133,30 @@ settings.ShowTooltip = function(parent, strings)
 end
 
 settings.OpenConfig = function(caption)
-  -- Toggle Existing Dialog
-  local existing = getglobal("ShaguScanConfigDialog"..caption)
-  if existing then
-    if existing:IsShown() then existing:Hide() else existing:Show() end
-    return
-  end
-
-  -- Create defconfig if new config
+  -- Create defconfig if new config (or if the window was deleted)
   if not ShaguScan_db.config[caption] then
     local config = {}
     for key, value in pairs(settings.defaults) do config[key] = value end
     ShaguScan_db.config[caption] = config
   end
 
+  -- Toggle Existing Dialog, showing the current values (the window may have
+  -- been moved since, and Save must not move it back)
+  local existing = getglobal("ShaguScanConfigDialog"..caption)
+  if existing then
+    if existing:IsShown() then
+      existing:Hide()
+    else
+      existing.Load(ShaguScan_db.config[caption])
+      existing:Show()
+    end
+    return
+  end
+
   -- Main Dialog
   local dialog = CreateFrame("Frame", "ShaguScanConfigDialog"..caption, UIParent)
   table.insert(UISpecialFrames, "ShaguScanConfigDialog"..caption)
+  dialog.id = caption
 
   -- Save Shortcuts
   local config = ShaguScan_db.config[caption]
@@ -181,7 +189,23 @@ settings.OpenConfig = function(caption)
   dialog.save:SetPoint("BOTTOMRIGHT", dialog, "BOTTOMRIGHT", -8, 8)
   dialog.save:SetText("Save")
   dialog.save:SetScript("OnClick", function()
-    local new_caption = dialog.caption:GetText()
+    local new_caption = utils.trim(dialog.caption:GetText())
+    local prefix = "|cffffcc00Shagu|cffffffffScanPlus:|cffffaaaa "
+
+    if new_caption == "" then
+      DEFAULT_CHAT_FRAME:AddMessage(prefix .. "The window needs a name.")
+      return
+    elseif new_caption ~= caption and ShaguScan_db.config[new_caption] then
+      DEFAULT_CHAT_FRAME:AddMessage(prefix .. "There already is a window called \"" .. new_caption .. "\".")
+      return
+    end
+
+    -- fall back to the current values for anything invalid
+    local config = ShaguScan_db.config[caption] or settings.defaults
+    local function positive(text, current)
+      local value = tonumber(text)
+      return value and value > 0 and value or current
+    end
 
     local filter = dialog.filter:GetText()
     local width = dialog.width:GetText()
@@ -196,12 +220,12 @@ settings.OpenConfig = function(caption)
     -- build new config
     local new_config = {
       filter = filter,
-      width = tonumber(width) or config.width,
-      height = tonumber(height) or config.height,
-      spacing = tonumber(spacing) or config.spacing,
-      maxrow = tonumber(maxrow) or config.maxrow,
+      width = positive(width, config.width),
+      height = positive(height, config.height),
+      spacing = tonumber(spacing) and tonumber(spacing) >= 0 and tonumber(spacing) or config.spacing,
+      maxrow = positive(maxrow, config.maxrow),
       anchor = utils.IsValidAnchor(anchor) and anchor or config.anchor,
-      scale = tonumber(scale) or config.scale,
+      scale = positive(scale, config.scale),
       x = tonumber(x) or config.x,
       y = tonumber(y) or config.y,
       locked = dialog.locked:GetChecked() and true or false,
@@ -209,9 +233,15 @@ settings.OpenConfig = function(caption)
       hidelabel = dialog.hidelabel:GetChecked() and true or false,
     }
 
-    ShaguScan_db.config[caption] = nil
-    ShaguScan_db.config[new_caption] = new_config
-    this:GetParent():Hide()
+    if new_caption == caption then
+      settings.ApplyConfig(caption, new_config)
+    else
+      -- renamed: this dialog stays tied to the old name, so a later
+      -- /scan <new name> opens a fresh dialog for the renamed window
+      ShaguScan_db.config[caption] = nil
+      ShaguScan_db.config[new_caption] = new_config
+    end
+    dialog:Hide()
   end)
 
   -- Delete
@@ -595,6 +625,7 @@ settings.OpenConfig = function(caption)
 
   -- Refresh all fields from a config (used after importing)
   dialog.Load = function(config)
+    dialog.caption:SetText(dialog.id)
     dialog.filter:SetText(config.filter or "")
     dialog.width:SetText(tostring(config.width))
     dialog.height:SetText(tostring(config.height))

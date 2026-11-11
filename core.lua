@@ -40,4 +40,15 @@ core:SetScript("OnEvent", function()
   end
 end)
 
+-- Forget units that no longer exist and haven't been seen for a while,
+-- so the list of units to check doesn't grow for the whole session.
+core.Prune = function()
+  local now = GetTime()
+  for guid, time in pairs(core.guids) do
+    if now - time > 600 and not UnitExists(guid) then
+      core.guids[guid] = nil
+    end
+  end
+end
+
 ShaguScan.core = core

@@ -35,31 +35,18 @@ end
 utils.GetBestAnchor = function(self)
   local scale = self:GetScale()
   local x, y = self:GetCenter()
-  local a = GetScreenWidth()  / scale / 3
-  local b = GetScreenWidth()  / scale / 3 * 2
-  local c = GetScreenHeight() / scale / 3 * 2
-  local d = GetScreenHeight() / scale / 3
-  if not x or not y then return end
+  if not x or not y then return "CENTER" end
 
-  if x < a and y > c then
-    return "TOPLEFT"
-  elseif x > a and x < b and y > c then
-    return "TOP"
-  elseif x > b and y > c then
-    return "TOPRIGHT"
-  elseif x < a and y > d and y < c then
-    return "LEFT"
-  elseif x > a and x < b and y > d and y < c then
-    return "CENTER"
-  elseif x > b and y > d and y < c then
-    return "RIGHT"
-  elseif x < a and y < d then
-    return "BOTTOMLEFT"
-  elseif x > a and x < b and y < d then
-    return "BOTTOM"
-  elseif x > b and y < d then
-    return "BOTTOMRIGHT"
-  end
+  local left   = x < GetScreenWidth()  / scale / 3
+  local right  = x > GetScreenWidth()  / scale / 3 * 2
+  local top    = y > GetScreenHeight() / scale / 3 * 2
+  local bottom = y < GetScreenHeight() / scale / 3
+
+  -- every position maps to an anchor, including exact boundaries
+  local vertical = top and "TOP" or bottom and "BOTTOM" or ""
+  local horizontal = left and "LEFT" or right and "RIGHT" or ""
+  local anchor = vertical .. horizontal
+  return anchor ~= "" and anchor or "CENTER"
 end
 
 utils.ConvertFrameAnchor = function(self, anchor)

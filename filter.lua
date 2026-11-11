@@ -227,7 +227,7 @@ filter.noaggro = function(unit)
 end
 
 filter.pfquest = function(unit)
-  return pfQuest and pfMap and UnitName(unit) and pfMap.tooltips[UnitName(unit)] and true or false
+  return pfQuest and pfMap and pfMap.tooltips and UnitName(unit) and pfMap.tooltips[UnitName(unit)] and true or false
 end
 
 filter.range = function(unit)
@@ -253,9 +253,10 @@ filter.maxlevel = function(unit, args)
 end
 
 filter.name = function(unit, name)
-  name = strlower(name or "")
+  -- "name" without text has no argument (true); match plain text, not patterns
+  name = strlower(type(name) == "string" and name or "")
   unit = strlower(UnitName(unit) or "")
-  return string.find(unit, name) and true or false
+  return string.find(unit, name, 1, true) and true or false
 end
 
 local health, healthmax = nil, nil

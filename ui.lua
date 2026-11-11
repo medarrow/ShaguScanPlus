@@ -26,9 +26,22 @@ ui.CreateRoot = function(parent, caption)
   
   frame:RegisterEvent("MODIFIER_STATE_CHANGED")
 
-  frame:SetScript("OnEvent", function(self)
+  frame:SetScript("OnEvent", function()
     if event == "MODIFIER_STATE_CHANGED" then
-      ui.UpdateMouseState(self)
+      ui.UpdateMouseState(this)
+    end
+  end)
+
+  -- Also watch the Shift key directly, in case the client doesn't send
+  -- MODIFIER_STATE_CHANGED.
+  frame:SetScript("OnUpdate", function()
+    local config = ShaguScan_db.config[this.id]
+    if config and config.shiftclick then
+      local down = IsShiftKeyDown() and true or false
+      if down ~= this.shiftdown then
+        this.shiftdown = down
+        ui.UpdateMouseState(this)
+      end
     end
   end)
 
@@ -75,6 +88,7 @@ ui.CreateRoot = function(parent, caption)
   -- assign/initialize elements
   frame.CreateBar = ui.CreateBar
   frame.frames = {}
+  frame.pool = {}
 
   -- create title text
   frame.caption = frame:CreateFontString(nil, "HIGH", "GameFontWhite")
@@ -126,6 +140,9 @@ ui.BarLeave = function()
 end
 
 ui.BarUpdate = function()
+  -- the unit can disappear between two window updates
+  if not UnitExists(this.guid) then return end
+
   -- animate combat text
   CombatFeedback_OnUpdate(arg1)
 
@@ -144,7 +161,7 @@ ui.BarUpdate = function()
   -- update caption text
   local level = utils.GetLevelString(this.guid)
   local level_color = utils.GetLevelColor(this.guid)
-  local name = UnitName(this.guid)
+  local name = UnitName(this.guid) or ""
   this.text:SetText(level_color..level.."|r "..name)
 
   -- update health bar border
@@ -294,11 +311,7 @@ ui.UpdateMouseState = function(root)
   local config = ShaguScan_db.config[root.id]
   if not config then return end
 
-  local allow = true
-
-  if config.shiftclick then
-    allow = IsShiftKeyDown() and true or false
-  end
+  local allow = ui.MouseAllowed(root)
 
   root:EnableMouse(allow)
 
@@ -307,9 +320,155 @@ ui.UpdateMouseState = function(root)
   end
 end
 
+-- Whether a window (and its bars) should currently accept the mouse.
+ui.MouseAllowed = function(root)
+  local config = ShaguScan_db.config[root.id]
+  if config and config.shiftclick then
+    return IsShiftKeyDown() and true or false
+  end
+  return true
+end
+
+-- Get a bar for a unit, reusing a hidden one when possible, since frames
+-- can't be deleted in WoW and creating one per unit would leak memory.
+ui.AcquireBar = function(root, guid)
+  local bar = table.remove(root.pool)
+  if bar then
+    bar.guid = guid
+    bar.hover = false
+    bar.feedbackText:SetText("")
+  else
+    bar = root:CreateBar(guid)
+  end
+  bar:EnableMouse(ui.MouseAllowed(root))
+  return bar
+end
+
+ui.ReleaseBar = function(root, guid)
+  local bar = root.frames[guid]
+  bar:Hide()
+  bar.color = nil
+  root.frames[guid] = nil
+  table.insert(root.pool, bar)
+end
+
+ui.UpdateWindow = function(root, caption, config)
+  -- update position based on config
+  if not root.pos or root.pos ~= config.anchor..config.x..config.y..config.scale then
+    root.pos = config.anchor..config.x..config.y..config.scale
+    root:ClearAllPoints()
+    root:SetPoint(config.anchor, config.x, config.y)
+    root:SetScale(config.scale)
+  end
+
+  -- update filter if required
+  if not root.filter_conf or root.filter_conf ~= config.filter then
+    -- prepare all filter texts and color modifiers
+    local invalid
+    root.filter, root.colors, invalid = utils.ParseFilterText(config.filter)
+
+    for _, text in ipairs(invalid) do
+      DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Shagu|cffffffffScanPlus:|cffffaaaa Unknown color in \"" ..
+        caption .. "\": " .. text)
+    end
+
+    -- mark current state of data
+    root.filter_conf = config.filter
+  end
+
+  -- show or hide the label (title and settings button)
+  if config.hidelabel then
+    root.caption:Hide()
+    root.settings:Hide()
+  else
+    root.caption:Show()
+    root.settings:Show()
+  end
+
+  -- run through all guids and fill with bars
+  -- (without a label, the bars start at the top of the window)
+  local title_size = config.hidelabel and 0 or 12 + config.spacing
+  local width, height = config.width, config.height + title_size
+  local x, y, count = 0, 0, 0
+  local shown = {}
+  for guid, time in pairs(ShaguScan.core.guids) do
+    -- apply filters (only to units that still exist)
+    local visible = UnitExists(guid) and true or false
+    if visible then
+      for name, args in pairs(root.filter) do
+        if filter[name] then
+          visible = visible and filter[name](guid, args)
+        end
+      end
+    end
+
+    -- display element if filters allow it
+    if visible then
+      count = count + 1
+
+      if count > config.maxrow then
+        count, x = 1, x + config.width + config.spacing
+        width = math.max(x + config.width, width)
+      end
+
+      y = (count-1) * (config.height + config.spacing) + title_size
+      height = math.max(y + config.height + config.spacing, height)
+
+      root.frames[guid] = root.frames[guid] or ui.AcquireBar(root, guid)
+      shown[guid] = true
+
+      -- pick the first color modifier whose filters all match
+      local color = nil
+      for _, rule in ipairs(root.colors) do
+        local match = true
+        for _, sub in ipairs(rule.filters) do
+          if filter[sub[1]] then
+            match = match and filter[sub[1]](guid, sub[2])
+          end
+        end
+        if match then
+          color = rule
+          break
+        end
+      end
+      root.frames[guid].color = color
+
+      -- update position if required
+      if not root.frames[guid].pos or root.frames[guid].pos ~= x..-y then
+        root.frames[guid]:ClearAllPoints()
+        root.frames[guid]:SetPoint("TOPLEFT", root, "TOPLEFT", x, -y)
+        root.frames[guid].pos = x..-y
+      end
+
+      -- update sizes if required
+      if not root.frames[guid].sizes or root.frames[guid].sizes ~= config.width..config.height then
+        root.frames[guid]:SetWidth(config.width)
+        root.frames[guid]:SetHeight(config.height)
+        root.frames[guid].sizes = config.width..config.height
+      end
+
+      root.frames[guid]:Show()
+    end
+  end
+
+  -- hide bars of units that are no longer shown
+  for guid in pairs(root.frames) do
+    if not shown[guid] then
+      ui.ReleaseBar(root, guid)
+    end
+  end
+
+  -- update window size
+  root:SetWidth(width)
+  root:SetHeight(height)
+end
+
 ui:SetAllPoints()
 ui:SetScript("OnUpdate", function()
   if ( this.tick or 1) > GetTime() then return else this.tick = GetTime() + .5 end
+
+  -- forget units that are gone for a while
+  ShaguScan.core.Prune()
 
   -- remove old leftover frames
   for caption, root in pairs(ui.frames) do
@@ -331,109 +490,10 @@ ui:SetScript("OnUpdate", function()
       ui.UpdateMouseState(root)
     end
 
-    -- skip if locked (due to moving)
-    if root.lock then return end
-
-    -- update position based on config
-    if not root.pos or root.pos ~= config.anchor..config.x..config.y..config.scale then
-      root.pos = config.anchor..config.x..config.y..config.scale
-      root:ClearAllPoints()
-      root:SetPoint(config.anchor, config.x, config.y)
-      root:SetScale(config.scale)
+    -- skip this window while it's being moved
+    if not root.lock then
+      ui.UpdateWindow(root, caption, config)
     end
-
-    -- update filter if required
-    if not root.filter_conf or root.filter_conf ~= config.filter then
-      -- prepare all filter texts and color modifiers
-      local invalid
-      root.filter, root.colors, invalid = utils.ParseFilterText(config.filter)
-
-      for _, text in ipairs(invalid) do
-        DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Shagu|cffffffffScanPlus:|cffffaaaa Unknown color in \"" ..
-          caption .. "\": " .. text)
-      end
-
-      -- mark current state of data
-      root.filter_conf = config.filter
-    end
-
-    -- show or hide the label (title and settings button)
-    if config.hidelabel then
-      root.caption:Hide()
-      root.settings:Hide()
-    else
-      root.caption:Show()
-      root.settings:Show()
-    end
-
-    -- run through all guids and fill with bars
-    -- (without a label, the bars start at the top of the window)
-    local title_size = config.hidelabel and 0 or 12 + config.spacing
-    local width, height = config.width, config.height + title_size
-    local x, y, count = 0, 0, 0
-    for guid, time in pairs(ShaguScan.core.guids) do
-      -- apply filters
-      local visible = true
-      for name, args in pairs(root.filter) do
-        if filter[name] then
-          visible = visible and filter[name](guid, args)
-        end
-      end
-
-      -- display element if filters allow it
-      if UnitExists(guid) and visible then
-        count = count + 1
-
-        if count > config.maxrow then
-          count, x = 1, x + config.width + config.spacing
-          width = math.max(x + config.width, width)
-        end
-
-        y = (count-1) * (config.height + config.spacing) + title_size
-        height = math.max(y + config.height + config.spacing, height)
-
-        root.frames[guid] = root.frames[guid] or root:CreateBar(guid)
-
-        -- pick the first color modifier whose filters all match
-        local color = nil
-        for _, rule in ipairs(root.colors) do
-          local match = true
-          for _, sub in ipairs(rule.filters) do
-            if filter[sub[1]] then
-              match = match and filter[sub[1]](guid, sub[2])
-            end
-          end
-          if match then
-            color = rule
-            break
-          end
-        end
-        root.frames[guid].color = color
-
-        -- update position if required
-        if not root.frames[guid].pos or root.frames[guid].pos ~= x..-y then
-          root.frames[guid]:ClearAllPoints()
-          root.frames[guid]:SetPoint("TOPLEFT", root, "TOPLEFT", x, -y)
-          root.frames[guid].pos = x..-y
-        end
-
-        -- update sizes if required
-        if not root.frames[guid].sizes or root.frames[guid].sizes ~= config.width..config.height then
-          root.frames[guid]:SetWidth(config.width)
-          root.frames[guid]:SetHeight(config.height)
-          root.frames[guid].sizes = config.width..config.height
-        end
-
-        root.frames[guid]:Show()
-      elseif root.frames[guid] then
-        root.frames[guid]:Hide()
-        root.frames[guid] = nil
-      end
-    end
-
-    -- update window size
-    root:SetWidth(width)
-    root:SetHeight(height)
   end
 end)
 
