@@ -28,7 +28,7 @@ Multiple windows can be created that each show health bars of nearby units based
 
 In case `/scan` is already blocked by another addon, you can also use `/sscan`, `/shaguscan` or `/shaguscanplus`.
 
-To see all of your scanner windows and their filters, type `/scan list`.
+To see all of your scanner windows and their filters, type `/scan list`. To delete all windows, type `/scan delete all` (it asks before deleting). For a list of all commands, type `/scan help`.
 
 Each window's configuration also has these options:
 
@@ -50,6 +50,7 @@ Window settings can be shared as a text code:
 - **Import** in a window's configuration replaces that window's settings with the ones from a pasted code. The window keeps its name.
 - `/scan export all` shows a single code that contains all of your windows.
 - `/scan import all` imports every window in a pasted code. Windows with the same name are overwritten, all other windows are kept.
+  Tick **Clean Import** to also delete every window that isn't in the code, so you end up with exactly the windows from the code.
 
 Codes only contain window settings and are never run as Lua code, so importing a code from someone else is safe.
 

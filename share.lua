@@ -391,7 +391,7 @@ share.CreateWindow = function()
   f:SetFrameStrata("FULLSCREEN_DIALOG")
   f:SetPoint("CENTER", 0, 0)
   f:SetWidth(420)
-  f:SetHeight(300)
+  f:SetHeight(320)
   f:EnableMouse(true)
   f:SetMovable(true)
   f:RegisterForDrag("LeftButton")
@@ -413,8 +413,7 @@ share.CreateWindow = function()
   f.close:SetScript("OnClick", function() f:Hide() end)
 
   f.box = CreateFrame("Frame", nil, f)
-  f.box:SetPoint("TOPLEFT", f, "TOPLEFT", 8, -28)
-  f.box:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -8, 34)
+  -- positioned in ShowWindow, since the Clean Import row needs space
   f.box:SetBackdrop(settings.textborder)
   f.box:SetBackdropColor(.1, .1, .1, 1)
   f.box:SetBackdropBorderColor(.2, .2, .2, 1)
@@ -458,6 +457,29 @@ share.CreateWindow = function()
   f.hint:SetTextColor(.7, .7, .7, 1)
   f.hint:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 12, 14)
 
+  -- Clean Import (only for /scan import all)
+  f.clean = CreateFrame("CheckButton", nil, f, "UICheckButtonTemplate")
+  f.clean:SetWidth(20)
+  f.clean:SetHeight(20)
+  f.clean:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 8, 30)
+
+  f.clean.text = f.clean:CreateFontString(nil, "OVERLAY", "GameFontWhite")
+  f.clean.text:SetFont(STANDARD_TEXT_FONT, 9)
+  f.clean.text:SetPoint("LEFT", f.clean, "RIGHT", 2, 0)
+  f.clean.text:SetText("Clean Import: delete windows that aren't in the code")
+
+  f.clean:SetScript("OnEnter", function()
+    settings.ShowTooltip(f.clean, {
+      "Clean Import",
+      "|cffaaaaaaAfter importing, only the windows from the code are left.",
+      "|cffaaaaaaAll other windows are deleted. This can't be undone,",
+      "|cffaaaaaaso export your windows first if you want to keep them."
+    })
+  end)
+  f.clean:SetScript("OnLeave", function()
+    GameTooltip:Hide()
+  end)
+
   f.action = CreateFrame("Button", nil, f, "GameMenuButtonTemplate")
   f.action:SetWidth(96)
   f.action:SetHeight(18)
@@ -474,9 +496,22 @@ share.CreateWindow = function()
   return f
 end
 
-share.ShowWindow = function(mode, title, text, onimport)
+share.ShowWindow = function(mode, title, text, onimport, clean)
   local f = share.window or share.CreateWindow()
   f:Hide()
+
+  -- the Clean Import option is only offered when asked for, and always
+  -- starts unchecked
+  f.clean:SetChecked(nil)
+  f.box:ClearAllPoints()
+  f.box:SetPoint("TOPLEFT", f, "TOPLEFT", 8, -28)
+  if clean then
+    f.clean:Show()
+    f.box:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -8, 56)
+  else
+    f.clean:Hide()
+    f.box:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -8, 34)
+  end
 
   f.mode = mode
   f.value = text
@@ -541,14 +576,32 @@ share.Import = function(caption)
       settings.ApplyConfig(caption, config)
       print("Imported settings into \"" .. caption .. "\".")
     else
+      -- Clean Import: delete windows that aren't part of the code
+      local removed = 0
+      if share.window.clean:GetChecked() then
+        local names = {}
+        for name in pairs(ShaguScan_db.config) do
+          if not windows[name] then table.insert(names, name) end
+        end
+        for _, name in ipairs(names) do
+          settings.DeleteWindow(name)
+          removed = removed + 1
+        end
+      end
+
       for name, config in pairs(windows) do
         settings.ApplyConfig(name, config)
       end
-      print("Imported " .. count .. (count == 1 and " window." or " windows."))
+
+      local message = "Imported " .. count .. (count == 1 and " window" or " windows")
+      if removed > 0 then
+        message = message .. " and deleted " .. removed .. (removed == 1 and " other window" or " other windows")
+      end
+      print(message .. ".")
     end
 
     return true
-  end)
+  end, not caption)
 end
 
 ShaguScan.share = share

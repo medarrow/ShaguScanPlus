@@ -15,8 +15,14 @@ SlashCmdList["SHAGUSCAN"] = function(input)
   elseif command == "import all" then
     ShaguScan.share.Import()
     return
+  elseif command == "delete all" then
+    settings.DeleteAll()
+    return
   elseif command == "list" then
     settings.ListWindows()
+    return
+  elseif command == "help" then
+    settings.ListCommands()
     return
   end
 
@@ -45,6 +51,54 @@ settings.ListWindows = function()
     DEFAULT_CHAT_FRAME:AddMessage("  |cffffcc00" .. caption .. "|r |cffaaaaaa" .. filter)
   end
   DEFAULT_CHAT_FRAME:AddMessage("|cffaaaaaaOpen a window's settings with /scan <name>.")
+end
+
+-- Print all slash commands.
+settings.ListCommands = function()
+  local chat = DEFAULT_CHAT_FRAME
+  chat:AddMessage("|cffffcc00Shagu|cffffffffScanPlus:|r Commands:")
+  chat:AddMessage("  |cffffcc00/scan <name>|r |cffaaaaaaopen the settings of a window (creates it if new)")
+  chat:AddMessage("  |cffffcc00/scan list|r |cffaaaaaashow all windows and their filters")
+  chat:AddMessage("  |cffffcc00/scan export all|r |cffaaaaaashow a code containing all windows")
+  chat:AddMessage("  |cffffcc00/scan import all|r |cffaaaaaaimport windows from a code")
+  chat:AddMessage("  |cffffcc00/scan delete all|r |cffaaaaaadelete all windows (asks first)")
+  chat:AddMessage("  |cffffcc00/scan help|r |cffaaaaaashow this list")
+  chat:AddMessage("|cffaaaaaa/sscan, /shaguscan and /shaguscanplus work the same as /scan.")
+end
+
+-- Delete one window and close its settings popup.
+settings.DeleteWindow = function(caption)
+  ShaguScan_db.config[caption] = nil
+  local dialog = getglobal("ShaguScanConfigDialog"..caption)
+  if dialog then dialog:Hide() end
+end
+
+-- Delete all windows, after asking for confirmation.
+settings.DeleteAll = function()
+  local count = 0
+  for _ in pairs(ShaguScan_db.config) do count = count + 1 end
+
+  if count == 0 then
+    DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Shagu|cffffffffScanPlus:|r There are no windows to delete.")
+    return
+  end
+
+  StaticPopupDialogs["SHAGUSCAN_DELETE_ALL"] = {
+    text = "Delete all " .. count .. " scan windows?\n\nThis can't be undone. Use /scan export all first to keep a copy.",
+    button1 = YES,
+    button2 = NO,
+    OnAccept = function()
+      local names = {}
+      for name in pairs(ShaguScan_db.config) do table.insert(names, name) end
+      for _, name in ipairs(names) do settings.DeleteWindow(name) end
+      DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00Shagu|cffffffffScanPlus:|r Deleted " .. table.getn(names) ..
+        (table.getn(names) == 1 and " window." or " windows."))
+    end,
+    timeout = 0,
+    whileDead = 1,
+    hideOnEscape = 1,
+  }
+  StaticPopup_Show("SHAGUSCAN_DELETE_ALL")
 end
 
 settings.defaults = {
@@ -252,8 +306,7 @@ settings.OpenConfig = function(caption)
   dialog.delete:SetPoint("BOTTOMLEFT", dialog, "BOTTOMLEFT", 8, 8)
   dialog.delete:SetText("Delete")
   dialog.delete:SetScript("OnClick", function()
-    ShaguScan_db.config[caption] = nil
-    this:GetParent():Hide()
+    settings.DeleteWindow(caption)
   end)
 
   -- Import
